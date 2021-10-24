@@ -6,7 +6,7 @@ A conversion of [nui_doorlock](https://github.com/thelindat/nui_doorlock) for [Q
 <p align="center"><img src='https://i.imgur.com/7yzvz1b.png'></img></p>
 <hr>
 
-* Easily add and configure new doors! <a href='https://streamable.com/e290wk'>Example video</a>  
+* Easily add and configure new doors! <a href='https://streamable.com/591vqz'>Example video</a>  
 Use the `/newdoor` command to automatically create a new entry on the DoorList.  
 
 * No more `SetEntityHeading` and `FreezeEntityPosition` natives.  
@@ -38,6 +38,5 @@ Allow item authorisation with `items = {'key_master', 'key_lspd'}` etc.
 <hr>
 <p align="center">https://streamable.com/oheu5e  
 <img src="https://i.imgur.com/Sug2Nj5.jpg"/></p>
-
 
 <p align='center'><img src="https://i.imgur.com/2Yz7Rtm.png"/></img></p>

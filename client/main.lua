@@ -165,11 +165,11 @@ local DoorLoop = function()
         local doorSleep = 100
         if not closestDoor.id then
             local distance = #(playerCoords - lastCoords)
-            if distance > 30 then
+            if distance > 15 then
                 UpdateDoors()
                 doorSleep = 1000
             else
-                closestDoor.distance = 30
+                closestDoor.distance = 15
                 for k in pairs(nearbyDoors) do
                     local door = Config.DoorList[k]
                     if door.setText and door.textCoords then

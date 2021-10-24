@@ -75,6 +75,7 @@
     height: fit-content;
     background-color: rgba(0, 0, 0, 0.9);
     border-radius: 1vh;
+    font-family: 'Poppins', sans-serif;
     font-size: 1.5vh;
     text-align: center;
 }
@@ -109,6 +110,7 @@ input[type=text],
     padding: 3%;
     margin-top: 1.5%;
     margin-bottom: 1.5%;
+    font-family: 'Poppins', sans-serif;
     font-size: 1.5vh;
     color: white;
     width: 100%;

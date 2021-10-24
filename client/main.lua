@@ -4,7 +4,12 @@ local Config = Config
 local playerCoords, lastCoords, arg
 local nearbyDoors, closestDoor = {}, {}
 local playerPed = PlayerPedId()
+local Started = false
 local paused = false
+
+------------------------------
+-- Functions
+------------------------------
 
 local round = function(num, decimal)
     local mult = 10^(decimal)
@@ -115,13 +120,13 @@ local CheckAuth = function(doorData)
     local hasitem = promise.new()
 
     if doorData.authorizedJobs then
-        if doorData.authorizedJobs[PlayerData.job.name] and doorData.authorizedJobs[PlayerData.job.name] >= PlayerData.job.grade.level then
+        if doorData.authorizedJobs[PlayerData.job.name] and PlayerData.job.grade.level >= doorData.authorizedJobs[PlayerData.job.name] then
             return true
         end
     end
 
     if doorData.authorizedGangs then
-        if doorData.authorizedGangs[PlayerData.gang.name] and doorData.authorizedGangs[PlayerData.gang.name] >= PlayerData.gang.grade.level then
+        if doorData.authorizedGangs[PlayerData.gang.name] and PlayerData.gang.grade.level >= doorData.authorizedGangs[PlayerData.gang.name] then
             return true
         end
     end
@@ -146,93 +151,97 @@ local CheckAuth = function(doorData)
 end
 
 local DoorLoop = function()
+    Started = true
+    local p = promise.new()
     QBCore.Functions.TriggerCallback('nui_doorlock:server:getDoorList', function(doorList)
         Config.DoorList = doorList
-        UpdateDoors()
-        while LocalPlayer.state['isLoggedIn'] do
-            playerPed = PlayerPedId()
-            playerCoords = GetEntityCoords(playerPed)
-            local doorSleep = 400
-            if not closestDoor.id then
-                local distance = #(playerCoords - lastCoords)
-                if distance > 30 then
-                    UpdateDoors()
-		            doorSleep = 1000
-                else
-                    closestDoor.distance = 30
-                    for k in pairs(nearbyDoors) do
-                        local door = Config.DoorList[k]
-                        if door.setText and door.textCoords then
-                            distance = #(door.textCoords - playerCoords)
-                            if distance < closestDoor.distance or 10 then
-                                if distance < door.maxDistance then
-                                    closestDoor = {distance = distance, id = k, data = door}
-                                    doorSleep = 0
-                                end
+        p:resolve(true)
+    end)
+    Citizen.Await(p)
+    UpdateDoors()
+    while LocalPlayer.state['isLoggedIn'] do
+        playerPed = PlayerPedId()
+        playerCoords = GetEntityCoords(playerPed)
+        local doorSleep = 100
+        if not closestDoor.id then
+            local distance = #(playerCoords - lastCoords)
+            if distance > 30 then
+                UpdateDoors()
+                doorSleep = 1000
+            else
+                closestDoor.distance = 30
+                for k in pairs(nearbyDoors) do
+                    local door = Config.DoorList[k]
+                    if door.setText and door.textCoords then
+                        distance = #(door.textCoords - playerCoords)
+                        if distance < closestDoor.distance or 10 then
+                            if distance < door.maxDistance then
+                                closestDoor = {distance = distance, id = k, data = door}
+                                doorSleep = 0
                             end
                         end
                     end
                 end
             end
-            if closestDoor.id then
-                while true do
-                    local sleep = 50
-                    playerPed = PlayerPedId()
-                    if Config.Debug then print(json.encode(closestDoor)) end
-                    if not paused and IsPauseMenuActive() then SendNUIMessage ({type = "hide"}) paused = true
-                    elseif paused then
-                        if not IsPauseMenuActive() then paused = false end
-                    else
-                        playerCoords = GetEntityCoords(playerPed)
-                        closestDoor.distance = #(closestDoor.data.textCoords - playerCoords)
-                        if closestDoor.distance < closestDoor.data.maxDistance then
-			                local canOpen = CheckAuth(closestDoor.data)
-                            if not closestDoor.data.doors then
-                                local doorState = DoorSystemGetDoorState(closestDoor.data.doorHash)
-                                if closestDoor.data.locked and not canOpen and doorState ~= 1 then
-                                    SendNUIMessage({type = "display", text = 'Locking'})
-                                elseif not closestDoor.data.locked and not canOpen then
-                                    if Config.ShowUnlockedText then SendNUIMessage({type = "display", text = 'Unlocked'}) else SendNUIMessage({type = "hide"}) end
-                                elseif not closestDoor.data.locked and canOpen then
-                                    if Config.ShowUnlockedText then SendNUIMessage({type = "display", text = '[E] - Unlocked'}) else SendNUIMessage({type = "hide"}) end
-                                elseif closestDoor.data.locked and not canOpen then
-                                    SendNUIMessage({type = "display", text = 'Locked'})
-                                elseif closestDoor.data.locked and canOpen then
-                                    SendNUIMessage({type = "display", text = '[E] - Locked'})
-                                end
-                            else
-                                local door = {}
-                                local state = {}
-                                door[1] = closestDoor.data.doors[1]
-                                door[2] = closestDoor.data.doors[2]
-                                state[1] = DoorSystemGetDoorState(door[1].doorHash)
-                                state[2] = DoorSystemGetDoorState(door[2].doorHash)
-
-                                if closestDoor.data.locked and (state[1] ~= 1 or state[2] ~= 1) then
-                                    SendNUIMessage({type = "display", text = 'Locking'})
-                                elseif not closestDoor.data.locked and not canOpen then
-                                    if Config.ShowUnlockedText then SendNUIMessage({type = "display", text = 'Unlocked'}) else SendNUIMessage({type = "hide"}) end
-                                elseif not closestDoor.data.locked and canOpen then
-                                    if Config.ShowUnlockedText then SendNUIMessage({type = "display", text = '[E] - Unlocked'}) else SendNUIMessage({type = "hide"}) end
-                                elseif closestDoor.data.locked and not canOpen then
-                                    SendNUIMessage({type = "display", text = 'Locked'})
-                                elseif closestDoor.data.locked and canOpen then
-                                    SendNUIMessage({type = "display", text = '[E] - Locked'})
-                                end
+        end
+        if closestDoor.id then
+            while true do
+                playerPed = PlayerPedId()
+                if Config.Debug then print(json.encode(closestDoor)) end
+                if not paused and IsPauseMenuActive() then SendNUIMessage ({type = "hide"}) paused = true
+                elseif paused then
+                    if not IsPauseMenuActive() then paused = false end
+                else
+                    playerCoords = GetEntityCoords(playerPed)
+                    closestDoor.distance = #(closestDoor.data.textCoords - playerCoords)
+                    if closestDoor.distance < closestDoor.data.maxDistance then
+                        local canOpen = CheckAuth(closestDoor.data)
+                        if not closestDoor.data.doors then
+                            local doorState = DoorSystemGetDoorState(closestDoor.data.doorHash)
+                            if closestDoor.data.locked and not canOpen and doorState ~= 1 then
+                                SendNUIMessage({type = "display", text = 'Locking'})
+                            elseif not closestDoor.data.locked and not canOpen then
+                                if Config.ShowUnlockedText then SendNUIMessage({type = "display", text = 'Unlocked'}) else SendNUIMessage({type = "hide"}) end
+                            elseif not closestDoor.data.locked and canOpen then
+                                if Config.ShowUnlockedText then SendNUIMessage({type = "display", text = '[E] - Unlocked'}) else SendNUIMessage({type = "hide"}) end
+                            elseif closestDoor.data.locked and not canOpen then
+                                SendNUIMessage({type = "display", text = 'Locked'})
+                            elseif closestDoor.data.locked and canOpen then
+                                SendNUIMessage({type = "display", text = '[E] - Locked'})
                             end
                         else
-                            if closestDoor.distance > closestDoor.data.maxDistance then SendNUIMessage({type = "hide"}) end
-                            break
+                            local door = {}
+                            local state = {}
+                            door[1] = closestDoor.data.doors[1]
+                            door[2] = closestDoor.data.doors[2]
+                            state[1] = DoorSystemGetDoorState(door[1].doorHash)
+                            state[2] = DoorSystemGetDoorState(door[2].doorHash)
+
+                            if closestDoor.data.locked and (state[1] ~= 1 or state[2] ~= 1) then
+                                SendNUIMessage({type = "display", text = 'Locking'})
+                            elseif not closestDoor.data.locked and not canOpen then
+                                if Config.ShowUnlockedText then SendNUIMessage({type = "display", text = 'Unlocked'}) else SendNUIMessage({type = "hide"}) end
+                            elseif not closestDoor.data.locked and canOpen then
+                                if Config.ShowUnlockedText then SendNUIMessage({type = "display", text = '[E] - Unlocked'}) else SendNUIMessage({type = "hide"}) end
+                            elseif closestDoor.data.locked and not canOpen then
+                                SendNUIMessage({type = "display", text = 'Locked'})
+                            elseif closestDoor.data.locked and canOpen then
+                                SendNUIMessage({type = "display", text = '[E] - Locked'})
+                            end
                         end
+                    else
+                        if closestDoor.distance > closestDoor.data.maxDistance then SendNUIMessage({type = "hide"}) end
+                        break
                     end
-                    Wait(sleep)
                 end
-                closestDoor = {}
-                doorSleep = 0
+                Wait(10)
             end
-            Wait(doorSleep)
+            closestDoor = {}
+            doorSleep = 0
         end
-    end)
+        Wait(doorSleep)
+    end
+    Started = false
 end
 
 local PlaySound = function(door, src, isScript)
@@ -257,6 +266,102 @@ local PlaySound = function(door, src, isScript)
         end
     end
 end
+
+local dooranim = function()
+    CreateThread(function()
+        RequestAnimDict(dict)
+        while (not HasAnimDictLoaded(dict)) do
+            Wait(5)
+        end
+        TaskPlayAnim(playerPed, "anim@heists@keycard@", "exit", 8.0, 1.0, -1, 16, 0, 0, 0, 0)
+        Wait(550)
+        ClearPedTasks(playerPed)
+    end)
+end
+
+local LockpickFinish = function(success)
+    if success then
+		QBCore.Functions.Notify('Success!', 'success', 2500)
+        if closestDoor.data.doors then
+            TaskTurnPedToFaceCoord(playerPed, closestDoor.data.doors[1].objCoords.x, closestDoor.data.doors[1].objCoords.y, closestDoor.data.doors[1].objCoords.z, 0)
+        else
+		    TaskTurnPedToFaceCoord(playerPed, closestDoor.data.objCoords.x, closestDoor.data.objCoords.y, closestDoor.data.objCoords.z, 0)
+        end
+		Wait(300)
+		local count = 0
+		while GetIsTaskActive(playerPed, 225) do Wait(10) count = count + 1 if count == 150 then break end end
+		Wait(1800)
+		TriggerServerEvent('nui_doorlock:server:updateState', closestDoor.id, false, false, true, false) -- Broadcast new state of the door to everyone
+    else
+		if math.random(1, 100) <= 17 then
+			TriggerServerEvent("QBCore:Server:RemoveItem", "lockpick", 1, false)
+			TriggerEvent('inventory:client:ItemBox', QBCore.Shared.Items["lockpick"], "remove")
+		end
+        QBCore.Functions.Notify('Failed..', 'error', 2500)
+    end
+end
+
+local AdvLockpickFinish = function(success)
+    if success then
+		QBCore.Functions.Notify('Success!', 'success', 2500)
+        if closestDoor.data.doors then
+            TaskTurnPedToFaceCoord(playerPed, closestDoor.data.doors[1].objCoords.x, closestDoor.data.doors[1].objCoords.y, closestDoor.data.doors[1].objCoords.z, 0)
+        else
+		    TaskTurnPedToFaceCoord(playerPed, closestDoor.data.objCoords.x, closestDoor.data.objCoords.y, closestDoor.data.objCoords.z, 0)
+        end
+		Wait(300)
+		local count = 0
+		while GetIsTaskActive(playerPed, 225) do Wait(10) count = count + 1 if count == 150 then break end end
+		Wait(1800)
+		TriggerServerEvent('nui_doorlock:server:updateState', closestDoor.id, false, false, true, false) -- Broadcast new state of the door to everyone
+    else
+		if math.random(1, 100) <= 17 then
+			TriggerServerEvent("QBCore:Server:RemoveItem", "advancedlockpick", 1, false)
+			TriggerEvent('inventory:client:ItemBox', QBCore.Shared.Items["advancedlockpick"], "remove")
+		end
+        QBCore.Functions.Notify('Failed', 'error', 2500)
+    end
+end
+
+local closeNUI = function()
+    SetNuiFocus(false, false)
+    SendNUIMessage({type = "newDoorSetup", enable = false})
+    Wait(10)
+    receivedDoorData = nil
+end
+
+local Raycast = function()
+    local offset = GetOffsetFromEntityInWorldCoords(GetCurrentPedWeaponEntityIndex(playerPed), 0, 0, -0.01)
+    local direction = GetGameplayCamRot()
+    direction = vec2(direction.x * math.pi / 180.0, direction.z * math.pi / 180.0)
+    local num = math.abs(math.cos(direction.x))
+    direction = vec3((-math.sin(direction.y) * num), (math.cos(direction.y) * num), math.sin(direction.x))
+    local destination = vec3(offset.x + direction.x * 30, offset.y + direction.y * 30, offset.z + direction.z * 30)
+    local rayHandle, result, hit, endCoords, surfaceNormal, entityHit = StartShapeTestLosProbe(offset, destination, -1, playerPed, 0)
+    repeat
+        result, hit, endCoords, surfaceNormal, entityHit = GetShapeTestResult(rayHandle)
+        Wait(0)
+    until result ~= 1
+    if GetEntityType(entityHit) == 3 then return hit, entityHit else return false end
+end
+
+local DrawInfos = function(text)
+    SetTextColour(255, 255, 255, 255) -- Color
+    SetTextFont(4) -- Font
+    SetTextScale(0.4, 0.4) -- Scale
+    SetTextWrap(0.0, 1.0) -- Wrap the text
+    SetTextCentre(false) -- Align to center(?)
+    SetTextDropshadow(0, 0, 0, 0, 255) -- Shadow. Distance, R, G, B, Alpha.
+    SetTextEdge(50, 0, 0, 0, 255) -- Edge. Width, R, G, B, Alpha.
+    SetTextOutline() -- Necessary to give it an outline.
+    SetTextEntry("STRING")
+    AddTextComponentString(text)
+    DrawText(0.015, 0.71) -- Position
+end
+
+------------------------------
+-- Events
+------------------------------
 
 RegisterNetEvent('nui_doorlock:client:setState', function(sid, doorID, locked, src, isScript)
     local serverid = GetPlayerServerId(PlayerId())
@@ -330,139 +435,6 @@ RegisterNetEvent('nui_doorlock:client:setState', function(sid, doorID, locked, s
         end
     end
 end)
-
-function loadAnimDict(dict)
-    while (not HasAnimDictLoaded(dict)) do
-        RequestAnimDict(dict)
-        Wait(0)
-    end
-end
-
-function dooranim()
-    CreateThread(function()
-        loadAnimDict("anim@heists@keycard@")
-        TaskPlayAnim(playerPed, "anim@heists@keycard@", "exit", 8.0, 1.0, -1, 16, 0, 0, 0, 0)
-        Wait(550)
-        ClearPedTasks(playerPed)
-    end)
-end
-
-RegisterCommand('doorlock', function()
-    if closestDoor.id and not PlayerData.metadata['isdead'] and not PlayerData.metadata['ishandcuffed'] then
-        local veh = GetVehiclePedIsIn(playerPed)
-        if veh then
-            CreateThread(function()
-                local counter = 0
-                local siren = IsVehicleSirenOn(veh)
-                repeat
-                    DisableControlAction(0, 86, true)
-                    SetHornEnabled(veh, false)
-                    if not siren then SetVehicleSiren(veh, false) end
-                    counter = counter + 1
-                    Wait(0)
-                until (counter == 100)
-                SetHornEnabled(veh, true)
-            end)
-        end
-        local locked = not closestDoor.data.locked
-        if closestDoor.data.audioRemote then src = NetworkGetNetworkIdFromEntity(playerPed) else src = false end
-        TriggerServerEvent('nui_doorlock:server:updateState', closestDoor.id, locked, src, false, false) -- Broadcast new state of the door to everyone
-    end
-end)
-TriggerEvent("chat:removeSuggestion", "/doorlock")
-RegisterKeyMapping('doorlock', '[Doorlock] Interact with doorlock~', 'keyboard', 'e')
-
-local LockpickFinish = function(success)
-    if success then
-		QBCore.Functions.Notify('Success!', 'success', 2500)
-        if closestDoor.data.doors then
-            TaskTurnPedToFaceCoord(playerPed, closestDoor.data.doors[1].objCoords.x, closestDoor.data.doors[1].objCoords.y, closestDoor.data.doors[1].objCoords.z, 0)
-        else
-		    TaskTurnPedToFaceCoord(playerPed, closestDoor.data.objCoords.x, closestDoor.data.objCoords.y, closestDoor.data.objCoords.z, 0)
-        end
-		Wait(300)
-		local count = 0
-		while GetIsTaskActive(playerPed, 225) do Wait(10) count = count + 1 if count == 150 then break end end
-		Wait(1800)
-		TriggerServerEvent('nui_doorlock:server:updateState', closestDoor.id, false, false, true, false) -- Broadcast new state of the door to everyone
-    else
-		if math.random(1, 100) <= 17 then
-			TriggerServerEvent("QBCore:Server:RemoveItem", "lockpick", 1, false)
-			TriggerEvent('inventory:client:ItemBox', QBCore.Shared.Items["lockpick"], "remove")
-		end
-        QBCore.Functions.Notify('Failed..', 'error', 2500)
-    end
-end
-
-local AdvLockpickFinish = function(success)
-    if success then
-		QBCore.Functions.Notify('Success!', 'success', 2500)
-        if closestDoor.data.doors then
-            TaskTurnPedToFaceCoord(playerPed, closestDoor.data.doors[1].objCoords.x, closestDoor.data.doors[1].objCoords.y, closestDoor.data.doors[1].objCoords.z, 0)
-        else
-		    TaskTurnPedToFaceCoord(playerPed, closestDoor.data.objCoords.x, closestDoor.data.objCoords.y, closestDoor.data.objCoords.z, 0)
-        end
-		Wait(300)
-		local count = 0
-		while GetIsTaskActive(playerPed, 225) do Wait(10) count = count + 1 if count == 150 then break end end
-		Wait(1800)
-		TriggerServerEvent('nui_doorlock:server:updateState', closestDoor.id, false, false, true, false) -- Broadcast new state of the door to everyone
-    else
-		if math.random(1, 100) <= 17 then
-			TriggerServerEvent("QBCore:Server:RemoveItem", "advancedlockpick", 1, false)
-			TriggerEvent('inventory:client:ItemBox', QBCore.Shared.Items["advancedlockpick"], "remove")
-		end
-        QBCore.Functions.Notify('Failed', 'error', 2500)
-    end
-end
-
-RegisterNetEvent('lockpicks:UseLockpick', function(isAdvanced)
-	if closestDoor.data then
-		if not PlayerData.metadata["isdead"] and not PlayerData.metadata["ishandcuffed"] and closestDoor.data.lockpick and closestDoor.data.locked then
-			if isAdvanced then
-				TriggerEvent('qb-lockpick:client:openLockpick', AdvLockpickFinish)
-			else
-				TriggerEvent('qb-lockpick:client:openLockpick', LockpickFinish)
-			end
-		end
-	end
-end)
-
-function closeNUI()
-    SetNuiFocus(false, false)
-    SendNUIMessage({type = "newDoorSetup", enable = false})
-    Wait(10)
-    receivedDoorData = nil
-end
-
-RegisterNUICallback('newDoor', function(data, cb)
-    receivedDoorData = true
-    arg = data
-    closeNUI()
-end)
-
-RegisterNUICallback('close', function(data, cb)
-    closeNUI()
-end)
-
-RegisterCommand('-nui', function(playerId, args, rawCommand)
-    closeNUI()
-end, false)
-
-local Raycast = function()
-    local offset = GetOffsetFromEntityInWorldCoords(GetCurrentPedWeaponEntityIndex(playerPed), 0, 0, -0.01)
-    local direction = GetGameplayCamRot()
-    direction = vec2(direction.x * math.pi / 180.0, direction.z * math.pi / 180.0)
-    local num = math.abs(math.cos(direction.x))
-    direction = vec3((-math.sin(direction.y) * num), (math.cos(direction.y) * num), math.sin(direction.x))
-    local destination = vec3(offset.x + direction.x * 30, offset.y + direction.y * 30, offset.z + direction.z * 30)
-    local rayHandle, result, hit, endCoords, surfaceNormal, entityHit = StartShapeTestLosProbe(offset, destination, -1, playerPed, 0)
-    repeat
-        result, hit, endCoords, surfaceNormal, entityHit = GetShapeTestResult(rayHandle)
-        Wait(0)
-    until result ~= 1
-    if GetEntityType(entityHit) == 3 then return hit, entityHit else return false end
-end
 
 RegisterNetEvent('nui_doorlock:client:newDoorSetup', function(args)
     if not args[1] then
@@ -608,29 +580,18 @@ RegisterNetEvent('nui_doorlock:client:newDoorSetup', function(args)
     end
 end)
 
-function DrawInfos(text)
-    SetTextColour(255, 255, 255, 255) -- Color
-    SetTextFont(4) -- Font
-    SetTextScale(0.4, 0.4) -- Scale
-    SetTextWrap(0.0, 1.0) -- Wrap the text
-    SetTextCentre(false) -- Align to center(?)
-    SetTextDropshadow(0, 0, 0, 0, 255) -- Shadow. Distance, R, G, B, Alpha.
-    SetTextEdge(50, 0, 0, 0, 255) -- Edge. Width, R, G, B, Alpha.
-    SetTextOutline() -- Necessary to give it an outline.
-    SetTextEntry("STRING")
-    AddTextComponentString(text)
-    DrawText(0.015, 0.71) -- Position
-end
-
 RegisterNetEvent('nui_doorlock:client:newDoorAdded', function(newDoor, doorID, locked)
     Config.DoorList[doorID] = newDoor
-    TriggerEvent('nui_doorlock:client:setState', GetPlayerServerId(PlayerId()), doorID, locked, false, false)
+    Config.DoorList[doorID].locked = locked
+    TriggerEvent('nui_doorlock:client:setState', GetPlayerServerId(PlayerId()), doorID, locked, false, true)
 end)
 
 RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
     PlayerData = QBCore.Functions.GetPlayerData()
     playerPed = PlayerPedId()
-    CreateThread(DoorLoop)
+    if not Started then
+        CreateThread(DoorLoop)
+    end
 end)
 
 RegisterNetEvent('QBCore:Client:OnPlayerUnload', function()
@@ -655,6 +616,71 @@ AddEventHandler('onResourceStart', function(resource)
     end
 end)
 
-if LocalPlayer.state['isLoggedIn'] then
-    CreateThread(DoorLoop)
-end
+------------------------------
+-- Commands
+------------------------------
+
+RegisterCommand('doorlock', function()
+    if closestDoor.id and not PlayerData.metadata['isdead'] and not PlayerData.metadata['ishandcuffed'] then
+        local veh = GetVehiclePedIsIn(playerPed)
+        if veh then
+            CreateThread(function()
+                local counter = 0
+                local siren = IsVehicleSirenOn(veh)
+                repeat
+                    DisableControlAction(0, 86, true)
+                    SetHornEnabled(veh, false)
+                    if not siren then SetVehicleSiren(veh, false) end
+                    counter = counter + 1
+                    Wait(0)
+                until (counter == 100)
+                SetHornEnabled(veh, true)
+            end)
+        end
+        local locked = not closestDoor.data.locked
+        if closestDoor.data.audioRemote then src = NetworkGetNetworkIdFromEntity(playerPed) else src = false end
+        TriggerServerEvent('nui_doorlock:server:updateState', closestDoor.id, locked, src, false, false) -- Broadcast new state of the door to everyone
+    end
+end)
+TriggerEvent("chat:removeSuggestion", "/doorlock")
+RegisterKeyMapping('doorlock', '[Doorlock] Interact with doorlock~', 'keyboard', 'e')
+
+RegisterNetEvent('lockpicks:UseLockpick', function(isAdvanced)
+	if closestDoor.data then
+		if not PlayerData.metadata["isdead"] and not PlayerData.metadata["ishandcuffed"] and closestDoor.data.lockpick and closestDoor.data.locked then
+			if isAdvanced then
+				TriggerEvent('qb-lockpick:client:openLockpick', AdvLockpickFinish)
+			else
+				TriggerEvent('qb-lockpick:client:openLockpick', LockpickFinish)
+			end
+		end
+	end
+end)
+
+RegisterCommand('-nui', function()
+    closeNUI()
+end, false)
+
+------------------------------
+-- NUI Callbacks
+------------------------------
+
+RegisterNUICallback('newDoor', function(data)
+    receivedDoorData = true
+    arg = data
+    closeNUI()
+end)
+
+RegisterNUICallback('close', function()
+    closeNUI()
+end)
+
+------------------------------
+-- Threads
+------------------------------
+
+CreateThread(function()
+    if LocalPlayer.state['isLoggedIn'] and not Started then
+        CreateThread(DoorLoop)
+    end
+end)

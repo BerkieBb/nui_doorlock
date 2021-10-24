@@ -1,7 +1,10 @@
 Config = {}
 
 Config.ShowUnlockedText = true
-Config.AdminAccess = false
+Config.AdminAccess = {
+	enabled = false,
+	permission = 'admin'
+}
 Config.Debug = false
 
 Config.DoorList = {}

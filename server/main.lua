@@ -1,4 +1,5 @@
 local QBCore = exports['qb-core']:GetCoreObject()
+local Config = Config
 
 --------------------------
 -- Functions
@@ -12,13 +13,13 @@ local IsAuthorized = function(Player, doorID, usedLockpick, isScript)
     end
 
     if doorID.authorizedJobs then
-        if doorID.authorizedJobs[Player.PlayerData.job.name] and doorID.authorizedJobs[Player.PlayerData.job.name] >= Player.PlayerData.job.grade.level then
+        if doorID.authorizedJobs[Player.PlayerData.job.name] and Player.PlayerData.job.grade.level >= doorID.authorizedJobs[Player.PlayerData.job.name] then
             return true
         end
     end
 
     if doorID.authorizedGangs then
-        if doorID.authorizedGangs[Player.PlayerData.gang.name] and doorID.authorizedGangs[Player.PlayerData.gang.name] >= Player.PlayerData.gang.grade.level then
+        if doorID.authorizedGangs[Player.PlayerData.gang.name] and Player.PlayerData.gang.grade.level >= doorID.authorizedGangs[Player.PlayerData.gang.name] then
             return true
         end
     end
@@ -40,12 +41,12 @@ local IsAuthorized = function(Player, doorID, usedLockpick, isScript)
         end
     end
 
-    if Config.AdminAccess.enabled and QBCore.Functions.HasPermission(Player.PlayerData.source, Config.AdminAccess.permission) then
-        print(Player.PlayerData.name..' opened a door using admin privileges')
+    if (not doorID.authorizedJobs or not next(doorID.authorizedJobs)) and (not doorID.authorizedGangs or not next(doorID.authorizedGangs)) and (not doorID.authorizedCIDs or not next(doorID.authorizedCIDs)) and (not doorID.items or not next(doorID.items)) and not doorID.lockpick then
         return true
     end
 
-    if (not doorID.authorizedJobs or not next(doorID.authorizedJobs)) and (not doorID.authorizedGangs or not next(doorID.authorizedGangs)) and (not doorID.authorizedCIDs or not next(doorID.authorizedCIDs)) and (not doorID.items or not next(doorID.items)) and not doorID.lockpick then
+    if Config.AdminAccess.enabled and QBCore.Functions.HasPermission(Player.PlayerData.source, Config.AdminAccess.permission) then
+        print(Player.PlayerData.name..' opened a door using admin privileges')
         return true
     end
 

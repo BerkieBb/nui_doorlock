@@ -150,6 +150,16 @@ local CheckAuth = function(doorData)
     return false
 end
 
+local displayNUIText = function(text)
+    SendNUIMessage({type = "display", text = text})
+    Wait(1)
+end
+
+local hideNUI = function()
+    SendNUIMessage({type = "hide"})
+    Wait(1)
+end
+
 local DoorLoop = function()
     Started = true
     local p = promise.new()
@@ -188,7 +198,9 @@ local DoorLoop = function()
             while true do
                 playerPed = PlayerPedId()
                 if Config.Debug then print(json.encode(closestDoor)) end
-                if not paused and IsPauseMenuActive() then SendNUIMessage ({type = "hide"}) paused = true
+                if not paused and IsPauseMenuActive() then
+                    hideNUI()
+                    paused = true
                 elseif paused then
                     if not IsPauseMenuActive() then paused = false end
                 else
@@ -196,45 +208,21 @@ local DoorLoop = function()
                     closestDoor.distance = #(closestDoor.data.textCoords - playerCoords)
                     if closestDoor.distance < closestDoor.data.maxDistance then
                         local canOpen = CheckAuth(closestDoor.data)
-                        if not closestDoor.data.doors then
-                            local doorState = DoorSystemGetDoorState(closestDoor.data.doorHash)
-                            if closestDoor.data.locked and not canOpen and doorState ~= 1 then
-                                SendNUIMessage({type = "display", text = 'Locking'})
-                            elseif not closestDoor.data.locked and not canOpen then
-                                if Config.ShowUnlockedText then SendNUIMessage({type = "display", text = 'Unlocked'}) else SendNUIMessage({type = "hide"}) end
-                            elseif not closestDoor.data.locked and canOpen then
-                                if Config.ShowUnlockedText then SendNUIMessage({type = "display", text = '[E] - Unlocked'}) else SendNUIMessage({type = "hide"}) end
-                            elseif closestDoor.data.locked and not canOpen then
-                                SendNUIMessage({type = "display", text = 'Locked'})
-                            elseif closestDoor.data.locked and canOpen then
-                                SendNUIMessage({type = "display", text = '[E] - Locked'})
-                            end
-                        else
-                            local door = {}
-                            local state = {}
-                            door[1] = closestDoor.data.doors[1]
-                            door[2] = closestDoor.data.doors[2]
-                            state[1] = DoorSystemGetDoorState(door[1].doorHash)
-                            state[2] = DoorSystemGetDoorState(door[2].doorHash)
-
-                            if closestDoor.data.locked and (state[1] ~= 1 or state[2] ~= 1) then
-                                SendNUIMessage({type = "display", text = 'Locking'})
-                            elseif not closestDoor.data.locked and not canOpen then
-                                if Config.ShowUnlockedText then SendNUIMessage({type = "display", text = 'Unlocked'}) else SendNUIMessage({type = "hide"}) end
-                            elseif not closestDoor.data.locked and canOpen then
-                                if Config.ShowUnlockedText then SendNUIMessage({type = "display", text = '[E] - Unlocked'}) else SendNUIMessage({type = "hide"}) end
-                            elseif closestDoor.data.locked and not canOpen then
-                                SendNUIMessage({type = "display", text = 'Locked'})
-                            elseif closestDoor.data.locked and canOpen then
-                                SendNUIMessage({type = "display", text = '[E] - Locked'})
-                            end
+                        if not closestDoor.data.locked and not canOpen then
+                            if Config.ShowUnlockedText then displayNUIText('Unlocked') else hideNUI() end
+                        elseif not closestDoor.data.locked and canOpen then
+                            if Config.ShowUnlockedText then displayNUIText('[E] - Unlocked') else hideNUI() end
+                        elseif closestDoor.data.locked and not canOpen then
+                            displayNUIText('Locked')
+                        elseif closestDoor.data.locked and canOpen then
+                            displayNUIText('[E] - Locked')
                         end
                     else
-                        if closestDoor.distance > closestDoor.data.maxDistance then SendNUIMessage({type = "hide"}) end
+                        hideNUI()
                         break
                     end
                 end
-                Wait(10)
+                Wait(100)
             end
             closestDoor = {}
             doorSleep = 0
@@ -269,8 +257,8 @@ end
 
 local dooranim = function()
     CreateThread(function()
-        RequestAnimDict(dict)
-        while (not HasAnimDictLoaded(dict)) do
+        RequestAnimDict("anim@heists@keycard@")
+        while not HasAnimDictLoaded("anim@heists@keycard@") do
             Wait(5)
         end
         TaskPlayAnim(playerPed, "anim@heists@keycard@", "exit", 8.0, 1.0, -1, 16, 0, 0, 0, 0)
@@ -370,30 +358,43 @@ RegisterNetEvent('nui_doorlock:client:setState', function(sid, doorID, locked, s
         Config.DoorList[doorID].locked = locked
         UpdateDoors(doorID)
         while true do
-            Wait(0)
             if Config.DoorList[doorID].doors then
                 for k, v in pairs(Config.DoorList[doorID].doors) do
-                    if not IsDoorRegisteredWithSystem(v.doorHash) then return end -- If door is not registered end the loop
+                    if not IsDoorRegisteredWithSystem(v.doorHash) then -- If door is not registered end the loop
+                        return
+                    end
                     v.currentHeading = GetEntityHeading(v.object)
                     v.doorState = DoorSystemGetDoorState(v.doorHash)
                     if Config.DoorList[doorID].slides then
                         if Config.DoorList[doorID].locked then
                             DoorSystemSetDoorState(v.doorHash, 1, false, false) -- Set to locked
                             DoorSystemSetAutomaticDistance(v.doorHash, 0.0, false, false)
-                            if k == 2 then PlaySound(Config.DoorList[doorID], src, isScript) return end -- End the loop
+                            if k == 2 then
+                                PlaySound(Config.DoorList[doorID], src, isScript)
+                                return -- End the loop
+                            end
                         else
                             DoorSystemSetDoorState(v.doorHash, 0, false, false) -- Set to unlocked
                             DoorSystemSetAutomaticDistance(v.doorHash, 30.0, false, false)
-                            if k == 2 then PlaySound(Config.DoorList[doorID], src, isScript) return end -- End the loop
+                            if k == 2 then
+                                PlaySound(Config.DoorList[doorID], src, isScript)
+                                return -- End the loop
+                            end
                         end
                     elseif Config.DoorList[doorID].locked and (v.doorState == 4) then
                         if Config.DoorList[doorID].oldMethod then FreezeEntityPosition(v.object, true) end
                         DoorSystemSetDoorState(v.doorHash, 1, false, false) -- Set to locked
-                        if Config.DoorList[doorID].doors[1].doorState == Config.DoorList[doorID].doors[2].doorState then PlaySound(Config.DoorList[doorID], src, isScript) return end -- End the loop
+                        if Config.DoorList[doorID].doors[1].doorState == Config.DoorList[doorID].doors[2].doorState then
+                            PlaySound(Config.DoorList[doorID], src, isScript)
+                            return -- End the loop
+                        end
                     elseif not Config.DoorList[doorID].locked then
                         if Config.DoorList[doorID].oldMethod then FreezeEntityPosition(v.object, false) end
                         DoorSystemSetDoorState(v.doorHash, 0, false, false) -- Set to unlocked
-                        if Config.DoorList[doorID].doors[1].doorState == Config.DoorList[doorID].doors[2].doorState then PlaySound(Config.DoorList[doorID], src, isScript) return end -- End the loop
+                        if Config.DoorList[doorID].doors[1].doorState == Config.DoorList[doorID].doors[2].doorState then
+                            PlaySound(Config.DoorList[doorID], src, isScript)
+                            return -- End the loop
+                        end
                     else
                         if round(v.currentHeading, 0) == round(v.objHeading, 0) then
                             DoorSystemSetDoorState(v.doorHash, 4, false, false) -- Force to close
@@ -401,7 +402,9 @@ RegisterNetEvent('nui_doorlock:client:setState', function(sid, doorID, locked, s
                     end
                 end
             else
-                if not IsDoorRegisteredWithSystem(Config.DoorList[doorID].doorHash) then return end -- If door is not registered end the loop
+                if not IsDoorRegisteredWithSystem(Config.DoorList[doorID].doorHash) then -- If door is not registered end the loop
+                    return
+                end
                 Config.DoorList[doorID].currentHeading = GetEntityHeading(Config.DoorList[doorID].object)
                 Config.DoorList[doorID].doorState = DoorSystemGetDoorState(Config.DoorList[doorID].doorHash)
                 if Config.DoorList[doorID].slides then
@@ -432,6 +435,7 @@ RegisterNetEvent('nui_doorlock:client:setState', function(sid, doorID, locked, s
                     end
                 end
             end
+            Wait(0)
         end
     end
 end)

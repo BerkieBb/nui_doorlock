@@ -25,7 +25,7 @@ window.addEventListener('message', ({ data }) => {
         data.enable ? formContainer.style.display = "flex" : formContainer.style.display = "none";
         data.enable ? doorlockContainer.style.display = "none" : doorlockContainer.style.display = "block";
     } else if (data.type == "audio") {
-		var volume = (data.audio['volume'] * data.sfx) / 10
+		var volume = (data.audio['volume'] / 10) * data.sfx
         if (volume > 1.0) {
             volume = 1.0
         }

@@ -233,6 +233,6 @@ end)
 -- Commands
 --------------------------
 
-QBCore.Commands.Add('newdoor', 'Create a new door using a gun', {{name='doortype', help='door/double/sliding/garage/doublesliding'},{name='locked', help='true/false'},{name='jobs', help='Add up to 3 jobs to this, seperate with spaces and no commas'}}, false, function(source, args)
+QBCore.Commands.Add('newdoor', 'Create a new door using a gun', { { name = 'doortype', help = 'door/double/sliding/garage/doublesliding' }, { name = 'locked', help = 'true/false' }, { name = 'jobs', help = 'Add up to 3 jobs to this, seperate with spaces and no commas' } }, false, function(source, args)
     TriggerClientEvent('nui_doorlock:client:newDoorSetup', source, args)
-end, 'god')
+end, Config.CommandPermission)

@@ -3,7 +3,7 @@
 A conversion of [nui_doorlock](https://github.com/thelindat/nui_doorlock) for [QBCore](https://github.com/qbcore-framework/qb-core). Thank you Linden for this amazing resource, unfortunately Linden has taken it off of their github so this repo now looks like it's a fork of another one but it was originally a fork of the original which was [Linden's](https://github.com/thelindat) repo
 
 <hr>
-<p align="center"><img src='https://i.imgur.com/7yzvz1b.png'></img></p>
+<p align="center"><img src='https://i.imgur.com/GU9JDaV.png'></img></p>
 <hr>
 
 * Easily add and configure new doors! <a href='https://streamable.com/591vqz'>Example video</a>  

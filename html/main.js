@@ -21,6 +21,9 @@ var formInfo = {
 }
 
 window.addEventListener('message', ({ data }) => {
+    if (data.color) {
+        doorlock.style.background = data.color;
+    }
     if (data.type == "newDoorSetup") {
         data.enable ? formContainer.style.display = "flex" : formContainer.style.display = "none";
         data.enable ? doorlockContainer.style.display = "none" : doorlockContainer.style.display = "block";

@@ -28,7 +28,6 @@
     font-family: "Staatliches";
     font-size: 1.7vh;
     float: left;
-    background: rgb(19, 28, 74);
     color: #fff;
     right: 13vh;
 }
@@ -98,6 +97,7 @@ option {
     border: 0;
     width: 100%;
     height: 3.5vh;
+    font-family: 'Poppins', sans-serif;
     font-size: 1.5vh;
     color: white;
     border-radius: 1vh;

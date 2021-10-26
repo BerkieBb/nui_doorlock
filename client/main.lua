@@ -151,7 +151,8 @@ local CheckAuth = function(doorData)
 end
 
 local displayNUIText = function(text)
-    SendNUIMessage({type = "display", text = text})
+    local selectedColor = closestDoor.data.locked and Config.LockedColor or Config.UnlockedColor
+    SendNUIMessage({type = "display", text = text, color = selectedColor})
     Wait(1)
 end
 
@@ -669,14 +670,16 @@ end, false)
 -- NUI Callbacks
 ------------------------------
 
-RegisterNUICallback('newDoor', function(data)
+RegisterNUICallback('newDoor', function(data, cb)
     receivedDoorData = true
     arg = data
     closeNUI()
+    cb('ok')
 end)
 
-RegisterNUICallback('close', function()
+RegisterNUICallback('close', function(data, cb)
     closeNUI()
+    cb('ok')
 end)
 
 ------------------------------

@@ -3,29 +3,23 @@ game 'gta5'
 
 author 'BerkieB'
 description 'Conversion of https://github.com/thelindat/nui_doorlock for QBCore with additional changes for preference'
-version '1.2.0'
+version '1.3.0'
 
 shared_scripts {
 	'config.lua',
 	'configs/*.lua',
 }
 
-server_scripts {
-	'server/main.lua'
-}
+server_script 'server/main.lua'
 
-client_scripts {
-	'client/main.lua'
-}
+client_script 'client/main.lua'
 
-ui_page {
-    'html/door.html',
-}
+ui_page 'html/door.html'
 
 files {
-	'html/door.html',
-	'html/main.js',
-	'html/style.css',
+	'html/*.html',
+	'html/*.js',
+	'html/*.css',
 
 	'html/sounds/*.ogg',
 }

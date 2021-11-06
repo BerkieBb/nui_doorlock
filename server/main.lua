@@ -141,9 +141,9 @@ RegisterNetEvent('nui_doorlock:server:newDoorCreate', function(config, model, he
 
         local file = io.open(path, 'a+')
         local label
-        if not doorname or doorname == '' then label = '\n\n-- Unnamed door created by '..Player.PlayerData.name..'\ntable.insert(Config.DoorList, {'
+        if not doorname or doorname == '' then label = '\n\n-- Unnamed door created by '..Player.PlayerData.name..'\nConfig.DoorList[#Config.DoorList+1] = {'
         else
-            label = '\n\n-- '..doorname.. '\ntable.insert(Config.DoorList, {'
+            label = '\n\n-- '..doorname.. '\nConfig.DoorList[#Config.DoorList+1] = {'
         end
         file:write(label)
         for k,v in pairs(newDoor) do
@@ -172,7 +172,7 @@ RegisterNetEvent('nui_doorlock:server:newDoorCreate', function(config, model, he
             end
         end
         file:write('\n    --oldMethod = true,\n    --audioLock = {[\'file\'] = \'metal-locker.ogg\', [\'volume\'] = 0.6},\n    --audioUnlock = {[\'file\'] = \'metallic-creak.ogg\', [\'volume\'] = 0.7},\n    --autoLock = 1000')
-        file:write('\n})')
+        file:write('\n}')
         file:close()
 
         if jobs[3] then newDoor.authorizedJobs = { [jobs[1]] = 0, [jobs[2]] = 0, [jobs[3]] = 0 }

@@ -651,15 +651,21 @@ TriggerEvent("chat:removeSuggestion", "/doorlock")
 RegisterKeyMapping('doorlock', '[Doorlock] Interact with doorlock~', 'keyboard', 'e')
 
 RegisterNetEvent('lockpicks:UseLockpick', function(isAdvanced)
-	if closestDoor.data then
-		if not PlayerData.metadata["isdead"] and not PlayerData.metadata["ishandcuffed"] and closestDoor.data.lockpick and closestDoor.data.locked then
-			if isAdvanced then
-				TriggerEvent('qb-lockpick:client:openLockpick', AdvLockpickFinish)
-			else
-				TriggerEvent('qb-lockpick:client:openLockpick', LockpickFinish)
-			end
-		end
-	end
+	QBCore.Functions.TriggerCallback('QBCore:HasItem', function(result)
+        if result then
+	        if closestDoor.data then
+	        	if not PlayerData.metadata["isdead"] and not PlayerData.metadata["ishandcuffed"] and closestDoor.data.lockpick and closestDoor.data.locked then
+	        		if isAdvanced then
+	        			TriggerEvent('qb-lockpick:client:openLockpick', AdvLockpickFinish)
+	        		else
+	        			TriggerEvent('qb-lockpick:client:openLockpick', LockpickFinish)
+	        		end
+	        	end
+	        end
+        else
+            QBCore.Functions.Notify("You don't have a screwdriverset..", "error")
+        end
+    end, "screwdriverset")
 end)
 
 RegisterCommand('-nui', function()

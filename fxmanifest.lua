@@ -3,7 +3,7 @@ game 'gta5'
 
 author 'BerkieB'
 description 'Conversion of https://github.com/thelindat/nui_doorlock for QBCore with additional changes for preference'
-version '1.3.0'
+version '2.0.0'
 
 shared_scripts {
 	'config.lua',

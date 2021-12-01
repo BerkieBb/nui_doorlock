@@ -1,5 +1,5 @@
 local QBCore = exports['qb-core']:GetCoreObject()
-local PlayerData = QBCore.FUnctions.GetPlayerData()
+local PlayerData = QBCore.Functions.GetPlayerData()
 local Config = Config
 local playerCoords, lastCoords, arg
 local nearbyDoors, closestDoor = {}, {}

@@ -348,6 +348,7 @@ end
 
 RegisterNetEvent('nui_doorlock:client:setState', function(sid, doorID, locked, src, isScript, enableSounds)
     local serverid = PlayerData.source
+    if enableSounds == nil then enableSounds = true end
     if sid == serverid and not isScript then dooranim() end
     if Config.DoorList[doorID] then
         Config.DoorList[doorID].locked = locked

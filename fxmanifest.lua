@@ -23,3 +23,5 @@ files {
 
 	'html/sounds/*.ogg',
 }
+
+lua54 'yes'

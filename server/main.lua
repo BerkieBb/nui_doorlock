@@ -5,7 +5,7 @@ local Config = Config
 -- Functions
 --------------------------
 
-local IsAuthorized = function(Player, doorID, usedLockpick, isScript)
+local function IsAuthorized(Player, doorID, usedLockpick, isScript)
     if isScript then return true end
 
     if doorID.lockpick and usedLockpick then
@@ -98,7 +98,7 @@ end)
 RegisterNetEvent('nui_doorlock:server:newDoorCreate', function(config, model, heading, coords, jobs, gangs, cids, item, doorLocked, maxDistance, slides, garage, doubleDoor, doorname)
     local Player = QBCore.Functions.GetPlayer(source)
     if Player then
-        if not QBCore.Functions.HasPermission(source, 'god') then print(('^3[Warning] ^7%s (%s) attempted to create a new door but does not have permission'):format(Player.PlayerData.name, Player.PlayerData.license)) return end
+        if not QBCore.Functions.HasPermission(source, Config.CommandPermission) then print(('^3[Warning] ^7%s (%s) attempted to create a new door but does not have permission'):format(Player.PlayerData.name, Player.PlayerData.license)) return end
         local newDoor, auth1, auth2, auth3 = {}, nil, nil, nil
         if jobs[1] then auth1 = tostring("['"..jobs[1].."']=0") end
         if jobs[2] then auth1 = auth1..', '..tostring("['"..jobs[2].."']=0") end
@@ -150,25 +150,24 @@ RegisterNetEvent('nui_doorlock:server:newDoorCreate', function(config, model, he
                 elseif k == 'authorizedCIDs' then
                     putauth = auth3
                 end
-                local str =  ('\n	%s = { %s },'):format(k, putauth)
+                local str =  ('\n    %s = { %s },'):format(k, putauth)
                 file:write(str)
             elseif k == 'doors' then
                 local doorStr = {}
                 for i=1, 2 do
-                    doorStr[#doorStr+1] = ('	{objHash = %s, objHeading = %s, objCoords = %s}'):format(model[i], heading[i], coords[i])
+                    doorStr[#doorStr+1] = ('    {objHash = %s, objHeading = %s, objCoords = %s}'):format(model[i], heading[i], coords[i])
                 end
-                local str = ('\n	%s = {\n	%s,\n	%s\n    },'):format(k, doorStr[1], doorStr[2])
+                local str = ('\n    %s = {\n    %s,\n    %s\n    },'):format(k, doorStr[1], doorStr[2])
                 file:write(str)
             elseif k == 'items' then
-                local str = ('\n	%s = { \'%s\' },'):format(k, item)
+                local str = ('\n    %s = { \'%s\' },'):format(k, item)
                 file:write(str)
             else
-                local str = ('\n	%s = %s,'):format(k, v)
+                local str = ('\n    %s = %s,'):format(k, v)
                 file:write(str)
             end
         end
-        file:write('\n    --oldMethod = true,\n    --audioLock = {[\'file\'] = \'metal-locker.ogg\', [\'volume\'] = 0.6},\n    --audioUnlock = {[\'file\'] = \'metallic-creak.ogg\', [\'volume\'] = 0.7},\n    --autoLock = 1000')
-        file:write('\n}')
+        file:write('\n    --oldMethod = true,\n    --audioLock = {[\'file\'] = \'metal-locker.ogg\', [\'volume\'] = 0.6},\n    --audioUnlock = {[\'file\'] = \'metallic-creak.ogg\', [\'volume\'] = 0.7},\n    --autoLock = 1000,\n    --doorRate = 1.0,\n    --showNUI = true\n}')
         file:close()
 
         if jobs[3] then newDoor.authorizedJobs = { [jobs[1]] = 0, [jobs[2]] = 0, [jobs[3]] = 0 }

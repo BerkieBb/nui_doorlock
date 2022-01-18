@@ -58,7 +58,7 @@ end
 --------------------------
 
 RegisterNetEvent('nui_doorlock:server:updateState', function(doorID, locked, src, usedLockpick, isScript, enableSounds, sentSource)
-    local playerId = source or sentSource
+    local playerId = sentSource or source
     local Player = QBCore.Functions.GetPlayer(playerId)
     if Player then
         if type(doorID) ~= 'number' and type(doorID) ~= 'string' then
